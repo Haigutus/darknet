@@ -1,5 +1,8 @@
 #include "darknet.h"
 
+#include <sys/time.h>
+#include <math.h>
+
 #include <stdio.h>
 #include <time.h>
 #include <assert.h>
@@ -779,24 +782,58 @@ void free_detections(detection *dets, int n)
 }
 
 // JSON format:
-//{
-// "frame_id":8990,
-// "objects":[
-//  {"class_id":4, "name":"aeroplane", "relative coordinates":{"center_x":0.398831, "center_y":0.630203, "width":0.057455, "height":0.020396}, "confidence":0.793070},
-//  {"class_id":14, "name":"bird", "relative coordinates":{"center_x":0.398831, "center_y":0.630203, "width":0.057455, "height":0.020396}, "confidence":0.265497}
-// ]
-//},
+// {
+//  "meta":{
+//  "frame_id":41864, 
+//  "frame_timestamp_utc":"2019-08-07T14:48:20.464Z"
+//  }, 
+//  "data": [ 
+//   {"class_id":"58", "name":"pottedplant", "relative_coordinates":{"center_x":"0,430594", "center_y":"0,287069", "width":"0,281147", "height":"0,526633"}, "confidence":"0,990395"}, 
+//   {"class_id":"56", "name":"chair", "relative_coordinates":{"center_x":"0,964156", "center_y":"0,719633", "width":"0,074923", "height":"0,212351"}, "confidence":"0,396046"}
+//  ] 
+// }, 
+
+  
 
 char *detection_to_json(detection *dets, int nboxes, int classes, char **names, long long int frame_id, char *filename)
 {
     const float thresh = 0.005; // function get_network_boxes() has already filtred dets by actual threshold
 
+    // add timestamp
+
+      char time_to_seconds[30];
+      char time_to_msseconds[30];
+      int millisec;
+      struct tm* tm_info;
+      struct timeval tv;
+
+      gettimeofday(&tv, NULL);
+
+      millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
+      if (millisec>=1000) { // Allow for rounding up to nearest second
+        millisec -=1000;
+        tv.tv_sec++;
+      }
+
+      tm_info = gmtime(&tv.tv_sec); // Lets use UTC time
+
+      strftime(time_to_seconds, 30, "%Y-%m-%dT%H:%M:%S", tm_info);
+      snprintf(time_to_msseconds, 30, "%s.%03dZ", time_to_seconds, millisec);
+      //printf("%s.%03dZ", time_to_seconds, millisec);
+      //printf(time_to_msseconds);
+
+    // end add timestamp
+
+
+
+
+
     char *send_buf = (char *)calloc(1024, sizeof(char));
     if (filename) {
-        sprintf(send_buf, "{\n \"frame_id\":%lld, \n \"filename\":\"%s\", \n \"objects\": [ \n", frame_id, filename);
+        sprintf(send_buf, "{\n \"meta\":{\n  \"frame_id\":%d, \n  \"frame_timestamp_utc\":\"%s\", \n  \"filename\":\"%s\"\n }, \n \"data\": [ \n", frame_id, time_to_msseconds, filename);
     }
     else {
-        sprintf(send_buf, "{\n \"frame_id\":%lld, \n \"objects\": [ \n", frame_id);
+        sprintf(send_buf, "{\n \"meta\":{\n  \"frame_id\":%d, \n  \"frame_timestamp_utc\":\"%s\"\n }, \n \"data\": [ \n", frame_id, time_to_msseconds);
     }
 
     int i, j;
@@ -812,7 +849,7 @@ char *detection_to_json(detection *dets, int nboxes, int classes, char **names, 
                 //sprintf(buf, "{\"image_id\":%d, \"category_id\":%d, \"bbox\":[%f, %f, %f, %f], \"score\":%f}",
                 //    image_id, j, dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h, dets[i].prob[j]);
 
-                sprintf(buf, "  {\"class_id\":%d, \"name\":\"%s\", \"relative_coordinates\":{\"center_x\":%f, \"center_y\":%f, \"width\":%f, \"height\":%f}, \"confidence\":%f}",
+                sprintf(buf, "  {\"class_id\":%d, \"name\":\"%s\", \"relative_coordinates\":{\"center_x\":\"%f\", \"center_y\":\"%f\", \"width\":\"%f\", \"height\":\"%f\"}, \"confidence\":\"%f\"}",
                     j, names[j], dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h, dets[i].prob[j]);
 
                 int send_buf_len = strlen(send_buf);
