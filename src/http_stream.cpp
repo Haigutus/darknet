@@ -216,7 +216,7 @@ public:
                 _write(client,
                     "Server: Mozarella/2.2\r\n"
                     "Accept-Range: bytes\r\n"
-                    "Connection: close\r\n"
+                    //"Connection: close\r\n"
                     "Max-Age: 0\r\n"
                     "Expires: 0\r\n"
                     "Cache-Control: no-cache, private\r\n"
@@ -450,7 +450,7 @@ public:
                 _write(client,
                     "Server: Mozarella/2.2\r\n"
                     "Accept-Range: bytes\r\n"
-                    "Connection: close\r\n"
+                    //"Connection: close\r\n"
                     "Max-Age: 0\r\n"
                     "Expires: 0\r\n"
                     "Cache-Control: no-cache, private\r\n"
